@@ -7,12 +7,12 @@ import * as z from "zod";
 const router = express.Router();
 
 const createSchema = z.object({
-  title: z.string().trim().min(1).max(200),
-  link: z.string().trim().url(),
-  type: z.string().trim().min(1),
+  title: z.string().min(1).max(200),
+  link: z.string().url(),
+  type: z.string().min(1),
   share: z.boolean().default(false),
   tags: z
-    .array(z.string().trim().min(1).max(30))
+    .array(z.string().min(1).max(30))
     .max(2, "You can add at most 2 tags")
     .default([]),
 });
@@ -20,7 +20,7 @@ const createSchema = z.object({
 const updateSchema = createSchema.partial();
 
 router.post('/create', async (req, res) => {
-
+    
     const {data, success} = createSchema.safeParse(req.body);
     //@ts-ignore
     const userId = req.user.id;
@@ -28,7 +28,6 @@ router.post('/create', async (req, res) => {
     if(!success) {
         return sendResponse(res, ResponseStatus.BAD_REQUEST)
     }
-
     const created = await prisma.content.create({
         data: {
             title: data.title,
@@ -54,6 +53,7 @@ router.put('/update/:contentId', async (req, res) => {
     //@ts-ignore
     const userId = req.user.id;
     const contentId = Number(req.params.contentId)
+    
     const {data, success} = updateSchema.safeParse(req.body);
 
     if(!success) {
@@ -94,7 +94,7 @@ router.get('/:contentId', async (req, res) => {
         })
 
         if((userId != contentData?.userId) && (contentData?.share == false)) {
-            return sendResponse(res, ResponseStatus.UNAUTHORIZED)
+            return sendResponse(res, ResponseStatus.FORBIDDEN)
         }
 
         return sendResponse(res, ResponseStatus.SUCCESS, contentData)
@@ -125,6 +125,7 @@ router.delete('/:contentId', async (req, res) => {
     const contentId = Number(req.params.contentId);
     //@ts-ignore
     const userId = req.user.id;
+    
 
     try {
         const deleteContent = await prisma.content.delete({
